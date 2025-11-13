@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: oklch(100% 0 0);
+  --color-foreground: oklch(15.23% 0.034 285.75);
+  --color-card: oklch(100% 0 0);
+  --color-card-foreground: oklch(15.23% 0.034 285.75);
+  --color-primary: oklch(25.71% 0.046 285.75);
+  --color-primary-foreground: oklch(98.04% 0.006 285.75);
+  --color-secondary: oklch(96.08% 0.006 285.75);
+  --color-secondary-foreground: oklch(25.71% 0.046 285.75);
+  --color-muted: oklch(96.08% 0.006 285.75);
+  --color-muted-foreground: oklch(56.88% 0.024 285.75);
+  --color-accent: oklch(96.08% 0.006 285.75);
+  --color-accent-foreground: oklch(25.71% 0.046 285.75);
+  --color-destructive: oklch(62.8% 0.257 29.23);
+  --color-destructive-foreground: oklch(98.04% 0.006 285.75);
+  --color-border: oklch(89.84% 0.011 285.75);
+  --color-input: oklch(89.84% 0.011 285.75);
+  --color-ring: oklch(15.23% 0.034 285.75);
+  --radius: 0.5rem;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: oklch(15.23% 0.034 285.75);
+    --color-foreground: oklch(98.04% 0.006 285.75);
+    --color-card: oklch(15.23% 0.034 285.75);
+    --color-card-foreground: oklch(98.04% 0.006 285.75);
+    --color-primary: oklch(98.04% 0.006 285.75);
+    --color-primary-foreground: oklch(25.71% 0.046 285.75);
+    --color-secondary: oklch(26.28% 0.036 285.75);
+    --color-secondary-foreground: oklch(98.04% 0.006 285.75);
+    --color-muted: oklch(26.28% 0.036 285.75);
+    --color-muted-foreground: oklch(70.35% 0.019 285.75);
+    --color-accent: oklch(26.28% 0.036 285.75);
+    --color-accent-foreground: oklch(98.04% 0.006 285.75);
+    --color-destructive: oklch(43.71% 0.194 29.23);
+    --color-destructive-foreground: oklch(98.04% 0.006 285.75);
+    --color-border: oklch(26.28% 0.036 285.75);
+    --color-input: oklch(26.28% 0.036 285.75);
+    --color-ring: oklch(83.33% 0.013 285.75);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
