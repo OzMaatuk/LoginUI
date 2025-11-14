@@ -42,7 +42,7 @@ The devcontainer will automatically:
 - Set up Node.js 20
 - Install all dependencies
 - Configure VS Code extensions (ESLint, Prettier, Tailwind CSS IntelliSense)
-- Forward port 3000 for the dev server
+- Forward port 8000 for the dev server
 - Copy `.env.example` to `.env.local`
 
 ### Installation
@@ -67,7 +67,7 @@ cp .env.example .env.local
 
 ```env
 # Backend API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=http://localhost:3002
 NEXT_PUBLIC_API_VERSION=v1
 
 # Application Configuration
@@ -95,7 +95,7 @@ yarn dev
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ### Build for Production
 
@@ -173,7 +173,7 @@ Tokens are stored using one of two methods (configured via `NEXT_PUBLIC_TOKEN_ST
 
 | Variable                      | Description                                       | Default                                |
 | ----------------------------- | ------------------------------------------------- | -------------------------------------- |
-| `NEXT_PUBLIC_API_URL`         | Backend API base URL                              | `http://localhost:8000`                |
+| `NEXT_PUBLIC_API_URL`         | Backend API base URL                              | `http://localhost:3002`                |
 | `NEXT_PUBLIC_API_VERSION`     | API version                                       | `v1`                                   |
 | `NEXT_PUBLIC_APP_NAME`        | Application name                                  | `SSO Login`                            |
 | `NEXT_PUBLIC_APP_DESCRIPTION` | App description                                   | `Secure Single Sign-On Authentication` |
@@ -251,7 +251,7 @@ Ensure your backend allows requests from your frontend domain:
 ```python
 # Backend CORS configuration example
 origins = [
-    "http://localhost:3000",
+    "http://localhost:8000",
     "https://yourdomain.com"
 ]
 ```
