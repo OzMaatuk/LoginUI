@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -10,18 +10,18 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { LoginForm } from "./components/LoginForm";
+// import { LoginForm } from "./components/LoginForm";
 import { OTPForm } from "./components/OTPForm";
 import { isAuthenticated } from "@/lib/auth";
 import { getApiUrl, config } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
-type LoginMode = "password" | "otp";
+// type LoginMode = "password" | "otp";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<LoginMode>("password");
+  // const [mode, setMode] = useState<LoginMode>("password");
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -45,7 +45,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {mode === "password" ? <LoginForm /> : <OTPForm />}
+          <OTPForm />
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -59,12 +59,12 @@ export default function LoginPage() {
           </div>
 
           <div className="grid gap-2">
-            <Button
+            {/* <Button
               variant="outline"
               onClick={() => setMode(mode === "password" ? "otp" : "password")}
             >
               {mode === "password" ? "Login with OTP" : "Login with Password"}
-            </Button>
+            </Button> */}
 
             <Button variant="outline" onClick={handleSSOLogin}>
               Login with SSO
