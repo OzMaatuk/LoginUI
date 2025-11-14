@@ -1,4 +1,4 @@
-# SSO Login Frontend
+# SSO Login UI
 
 A modern, minimal Next.js 14 frontend application for SSO authentication with support for email/password, OTP, and SSO login methods.
 
@@ -8,7 +8,6 @@ A modern, minimal Next.js 14 frontend application for SSO authentication with su
   - Email/Password login
   - One-Time Password (OTP) via email
   - Single Sign-On (SSO) integration
-  
 - **Modern Tech Stack**
   - Next.js 14 with App Router
   - TypeScript for type safety
@@ -16,7 +15,6 @@ A modern, minimal Next.js 14 frontend application for SSO authentication with su
   - React Hook Form + Zod validation
   - TanStack Query for API state management
   - Zustand for UI state
-  
 - **Security Best Practices**
   - httpOnly cookies for token storage (configurable)
   - Secure session management
@@ -40,6 +38,7 @@ This project includes a devcontainer configuration for consistent development en
 4. Click "Reopen in Container" when prompted (or use Command Palette: `Dev Containers: Reopen in Container`)
 
 The devcontainer will automatically:
+
 - Set up Node.js 20
 - Install all dependencies
 - Configure VS Code extensions (ESLint, Prettier, Tailwind CSS IntelliSense)
@@ -172,14 +171,14 @@ Tokens are stored using one of two methods (configured via `NEXT_PUBLIC_TOKEN_ST
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Backend API base URL | `http://localhost:8000` |
-| `NEXT_PUBLIC_API_VERSION` | API version | `v1` |
-| `NEXT_PUBLIC_APP_NAME` | Application name | `SSO Login` |
-| `NEXT_PUBLIC_APP_DESCRIPTION` | App description | `Secure Single Sign-On Authentication` |
-| `NEXT_PUBLIC_TOKEN_STORAGE` | Token storage method (`cookie` or `localStorage`) | `cookie` |
-| `NEXT_PUBLIC_SESSION_TIMEOUT` | Session timeout in milliseconds | `3600000` (1 hour) |
+| Variable                      | Description                                       | Default                                |
+| ----------------------------- | ------------------------------------------------- | -------------------------------------- |
+| `NEXT_PUBLIC_API_URL`         | Backend API base URL                              | `http://localhost:8000`                |
+| `NEXT_PUBLIC_API_VERSION`     | API version                                       | `v1`                                   |
+| `NEXT_PUBLIC_APP_NAME`        | Application name                                  | `SSO Login`                            |
+| `NEXT_PUBLIC_APP_DESCRIPTION` | App description                                   | `Secure Single Sign-On Authentication` |
+| `NEXT_PUBLIC_TOKEN_STORAGE`   | Token storage method (`cookie` or `localStorage`) | `cookie`                               |
+| `NEXT_PUBLIC_SESSION_TIMEOUT` | Session timeout in milliseconds                   | `3600000` (1 hour)                     |
 
 ## Customization
 

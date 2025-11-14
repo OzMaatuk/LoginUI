@@ -1,5 +1,5 @@
 {
-  "name": "SSO Login Frontend",
+  "name": "SSO Login ui",
   "build": {
     "dockerfile": "Dockerfile"
   },
