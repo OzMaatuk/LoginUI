@@ -9,8 +9,8 @@ import { NextRequest } from 'next/server';
 
 // Mock dependencies
 jest.mock('@/lib/redis', () => ({
-  setSession: jest.fn().mockResolvedValue(undefined),
-  getSession: jest.fn().mockResolvedValue(null),
+  setSession: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  getSession: jest.fn<() => Promise<null>>().mockResolvedValue(null),
 }));
 
 jest.mock('@/lib/rate-limit', () => ({
@@ -18,8 +18,8 @@ jest.mock('@/lib/rate-limit', () => ({
 }));
 
 jest.mock('@/auth', () => ({
-  auth: jest.fn().mockResolvedValue(null),
-  signOut: jest.fn().mockResolvedValue(undefined),
+  auth: jest.fn<() => Promise<null>>().mockResolvedValue(null),
+  signOut: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
 }));
 
 describe('External App Login Flow', () => {

@@ -7,8 +7,10 @@ import { generateState, generateSessionId, sanitizeReturnUrl } from '@/lib/auth-
 export async function GET(request: NextRequest) {
   // Rate limiting
   if (ratelimit) {
-    const identifier = request.ip || 'anonymous';
-    const { success } = await ratelimit.limit(identifier);
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+                request.headers.get('x-real-ip') || 
+                'anonymous';
+    const { success } = await ratelimit.limit(ip);
     if (!success) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
@@ -49,11 +51,14 @@ export async function GET(request: NextRequest) {
   await setSession(sessionId, { appId, returnUrl, state }, 600);
 
   // Log the action
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+              request.headers.get('x-real-ip') || 
+              'unknown';
   console.log('[AUTH]', {
     action: 'initiate',
     appId,
     timestamp: new Date().toISOString(),
-    ip: request.ip,
+    ip,
   });
 
   // Redirect to login page with session cookie
