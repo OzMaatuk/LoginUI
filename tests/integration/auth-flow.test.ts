@@ -1,55 +1,103 @@
-import { describe, test, expect } from '@jest/globals';
+/**
+ * @jest-environment node
+ */
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { GET as initiateGET } from '@/app/api/auth/initiate/route';
+import { GET as sessionGET } from '@/app/api/auth/session/route';
+import { POST as logoutPOST } from '@/app/api/auth/logout/route';
+import { NextRequest } from 'next/server';
+
+// Mock dependencies
+jest.mock('@/lib/redis', () => ({
+  setSession: jest.fn().mockResolvedValue(undefined),
+  getSession: jest.fn().mockResolvedValue(null),
+}));
+
+jest.mock('@/lib/rate-limit', () => ({
+  ratelimit: null,
+}));
+
+jest.mock('@/auth', () => ({
+  auth: jest.fn().mockResolvedValue(null),
+  signOut: jest.fn().mockResolvedValue(undefined),
+}));
 
 describe('External App Login Flow', () => {
-  const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:8000';
-
-  test('should reject invalid app_id', async () => {
-    const response = await fetch(
-      `${baseUrl}/api/auth/initiate?app_id=invalid&return_url=http://localhost:3001/callback`
-    );
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.error).toBe('Invalid app_id');
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  test('should reject invalid return_url', async () => {
-    const response = await fetch(
-      `${baseUrl}/api/auth/initiate?app_id=app1&return_url=http://malicious.com/callback`
-    );
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.error).toBe('Invalid return_url');
-  });
+  describe('Auth Initiate Endpoint', () => {
+    test('should reject invalid app_id', async () => {
+      const request = new NextRequest(
+        'http://localhost:8000/api/auth/initiate?app_id=invalid&return_url=http://localhost:3001/callback'
+      );
 
-  test('should reject missing parameters', async () => {
-    const response = await fetch(`${baseUrl}/api/auth/initiate?app_id=app1`);
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.error).toBe('Missing parameters');
-  });
-
-  test('should return 401 for unauthenticated session check', async () => {
-    const response = await fetch(`${baseUrl}/api/auth/session`);
-    expect(response.status).toBe(401);
-    const data = await response.json();
-    expect(data.user).toBeNull();
-  });
-
-  test('should successfully logout', async () => {
-    const response = await fetch(`${baseUrl}/api/auth/logout`, {
-      method: 'POST',
+      const response = await initiateGET(request);
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.error).toBe('Invalid app_id');
     });
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.success).toBe(true);
+
+    test('should reject invalid return_url', async () => {
+      const request = new NextRequest(
+        'http://localhost:8000/api/auth/initiate?app_id=app1&return_url=http://malicious.com/callback'
+      );
+
+      const response = await initiateGET(request);
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.error).toBe('Invalid return_url');
+    });
+
+    test('should reject missing parameters', async () => {
+      const request = new NextRequest(
+        'http://localhost:8000/api/auth/initiate?app_id=app1'
+      );
+
+      const response = await initiateGET(request);
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.error).toBe('Missing parameters');
+    });
+
+    test('should redirect to login with valid parameters', async () => {
+      const request = new NextRequest(
+        'http://localhost:8000/api/auth/initiate?app_id=app1&return_url=http://localhost:3001/auth/callback'
+      );
+
+      const response = await initiateGET(request);
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain('/login');
+    });
   });
 
-  test('should redirect to login with valid parameters', async () => {
-    const response = await fetch(
-      `${baseUrl}/api/auth/initiate?app_id=app1&return_url=http://localhost:3001/auth/callback`,
-      { redirect: 'manual' }
-    );
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toContain('/login');
+  describe('Session Endpoint', () => {
+    test('should return 401 for unauthenticated session check', async () => {
+      const request = new NextRequest('http://localhost:8000/api/auth/session');
+
+      const response = await sessionGET(request);
+      expect(response.status).toBe(401);
+      
+      const data = await response.json();
+      expect(data.user).toBeNull();
+    });
+  });
+
+  describe('Logout Endpoint', () => {
+    test('should successfully logout', async () => {
+      const request = new NextRequest('http://localhost:8000/api/auth/logout', {
+        method: 'POST',
+      });
+
+      const response = await logoutPOST(request);
+      expect(response.status).toBe(200);
+      
+      const data = await response.json();
+      expect(data.success).toBe(true);
+    });
   });
 });
