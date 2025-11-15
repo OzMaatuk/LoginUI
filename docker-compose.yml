@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Authentik
+  postgresql:
+    image: postgres:16-alpine
+    container_name: authentik-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d authentik -U authentik"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${PG_PASS:-authentik_db_password}
+      POSTGRES_USER: authentik
+      POSTGRES_DB: authentik
+    networks:
+      - authentik
+
+  # Redis for Authentik
+  redis:
+    image: redis:alpine
+    container_name: authentik-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    networks:
+      - authentik
+
+  # Authentik Server
+  authentik-server:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik-server
+    restart: unless-stopped
+    command: server
+    environment:
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:-authentik_db_password}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-change-this-to-a-random-secret}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
+    volumes:
+      - authentik_media:/media
+      - authentik_templates:/templates
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    depends_on:
+      - postgresql
+      - redis
+    networks:
+      - authentik
+
+  # Authentik Worker
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik-worker
+    restart: unless-stopped
+    command: worker
+    environment:
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:-authentik_db_password}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-change-this-to-a-random-secret}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
+    volumes:
+      - authentik_media:/media
+      - authentik_templates:/templates
+      - authentik_certs:/certs
+    depends_on:
+      - postgresql
+      - redis
+    networks:
+      - authentik
+
+  # SSO Login Application
+  sso-login:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sso-login-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      NODE_ENV: production
+      AUTHENTIK_ISSUER: http://authentik-server:9000/application/o/sso-login/
+      AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID}
+      AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET}
+      AUTH_SECRET: ${AUTH_SECRET}
+      NEXTAUTH_URL: http://localhost:8000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      OTP_PROVIDER: ${OTP_PROVIDER:-mock}
+      OTP_EXTERNAL_SERVICE_URL: ${OTP_EXTERNAL_SERVICE_URL}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-SSO Login}
+      NEXT_PUBLIC_APP_DESCRIPTION: ${NEXT_PUBLIC_APP_DESCRIPTION:-Secure Single Sign-On Authentication}
+      NEXT_PUBLIC_SESSION_TIMEOUT: ${NEXT_PUBLIC_SESSION_TIMEOUT:-3600000}
+    depends_on:
+      - authentik-server
+    networks:
+      - authentik
+
+volumes:
+  postgres_data:
+    driver: local
+  authentik_media:
+    driver: local
+  authentik_templates:
+    driver: local
+  authentik_certs:
+    driver: local
+
+networks:
+  authentik:
+    driver: bridge

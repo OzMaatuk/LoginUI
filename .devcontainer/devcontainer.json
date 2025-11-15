@@ -1,8 +1,8 @@
 {
-  "name": "SSO Login ui",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "name": "SSO Login UI",
+  "dockerComposeFile": "../docker-compose.dev.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -30,10 +30,14 @@
       }
     }
   },
-  "forwardPorts": [8000],
+  "forwardPorts": [8000, 9000],
   "portsAttributes": {
     "8000": {
       "label": "Next.js Dev Server",
+      "onAutoForward": "notify"
+    },
+    "9000": {
+      "label": "Authentik",
       "onAutoForward": "notify"
     }
   },
