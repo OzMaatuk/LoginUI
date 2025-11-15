@@ -1,6 +1,6 @@
 {
   "name": "SSO Login UI",
-  "dockerComposeFile": "../docker-compose.dev.yml",
+  "dockerComposeFile": "./docker-compose.dev.yml",
   "service": "app",
   "workspaceFolder": "/workspace",
   "customizations": {
