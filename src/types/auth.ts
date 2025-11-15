@@ -1,30 +1,19 @@
-export interface LoginCredentials {
+export interface LoginSession {
+  appId: string;
+  returnUrl: string;
+  state: string;
+}
+
+export interface SessionUser {
+  id: string;
   email: string;
-  password: string;
+  name?: string;
 }
 
-export interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  user?: {
-    id: string;
-    email: string;
-    name?: string;
-    role?: string;
-  };
+export interface SessionResponse {
+  user: SessionUser | null;
 }
 
-export interface OTPRequestPayload {
-  email: string;
-}
-
-export interface OTPVerifyPayload {
-  email: string;
-  otp: string;
-}
-
-export interface OTPResponse {
-  message: string;
-  access_token?: string;
-  token_type?: string;
+export interface LogoutResponse {
+  success: boolean;
 }

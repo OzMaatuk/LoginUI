@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -17,15 +17,45 @@ import { signIn } from "next-auth/react";
 
 export const dynamic = "force-dynamic";
 
+interface LoginSession {
+  appId: string;
+  returnUrl: string;
+  state: string;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const [loginSession, setLoginSession] = useState<LoginSession | null>(null);
+
+  useEffect(() => {
+    // Check if this is external app login
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/auth/check-login-session');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.appId) {
+            setLoginSession(data);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check login session:', error);
+      }
+    };
+    checkSession();
+  }, []);
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.push("/profile");
+      // Redirect to external app if login session exists
+      if (loginSession?.returnUrl) {
+        window.location.href = loginSession.returnUrl;
+      } else {
+        router.push("/profile");
+      }
     }
-  }, [status, router]);
+  }, [status, router, loginSession]);
 
   const handleAuthentikLogin = async () => {
     await signIn("authentik", { callbackUrl: "/profile" });

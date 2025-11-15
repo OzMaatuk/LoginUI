@@ -40,6 +40,14 @@ export const authConfig: NextAuthConfig = {
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // Allow redirects to external apps via login_session
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      // Default to base URL for external redirects
+      return baseUrl;
+    },
   },
   session: {
     strategy: "jwt",
