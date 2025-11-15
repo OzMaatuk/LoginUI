@@ -30,7 +30,7 @@
       }
     }
   },
-  "forwardPorts": [8000, 9000],
+  "forwardPorts": [8000, 9000, 6379],
   "portsAttributes": {
     "8000": {
       "label": "Next.js Dev Server",
@@ -39,6 +39,10 @@
     "9000": {
       "label": "Authentik",
       "onAutoForward": "notify"
+    },
+    "6379": {
+      "label": "Redis Sessions",
+      "onAutoForward": "silent"
     }
   },
   "postCreateCommand": "npm install",

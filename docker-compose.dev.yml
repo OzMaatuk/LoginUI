@@ -87,6 +87,24 @@ services:
     networks:
       - authentik-dev
 
+  # Redis for Login Service Sessions (Development)
+  redis-sessions:
+    image: redis:7-alpine
+    container_name: login-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_sessions_dev:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    networks:
+      - authentik-dev
+
   # Development container for the app
   app:
     build:
@@ -97,10 +115,15 @@ services:
       - .:/workspace:cached
       - node_modules:/workspace/node_modules
     command: sleep infinity
+    environment:
+      PORT: 8000
+      REDIS_URL: redis://redis-sessions:6379
     networks:
       - authentik-dev
     ports:
       - "8000:8000"
+    depends_on:
+      - redis-sessions
 
 volumes:
   postgres_data_dev:
@@ -110,6 +133,8 @@ volumes:
   authentik_templates_dev:
     driver: local
   authentik_certs_dev:
+    driver: local
+  redis_sessions_dev:
     driver: local
   node_modules:
     driver: local
