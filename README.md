@@ -55,14 +55,11 @@ A secure, centralized authentication service built with Next.js that acts as a p
 ### 1. Installation
 
 ```bash
-# Install dependencies
+# Install dependencies (includes internal auth-sdk package)
 npm install
 
-# Build client SDK
-cd packages/auth-sdk
-npm install
-npm run build
-cd ../..
+# Build internal auth SDK
+npm run build:sdk
 ```
 
 ### 2. Environment Setup
@@ -91,15 +88,27 @@ openssl rand -base64 32
 
 ### 3. Start Services
 
+**Development:**
 ```bash
+# Start all services (Authentik, PostgreSQL, Redis, App)
+docker-compose -f .devcontainer/docker-compose.dev.yml up -d
+
+# Run dev server
+npm run dev
+```
+
+**Production:**
+```bash
+# Start all services
 docker-compose up -d
 ```
 
 This starts:
-- Authentik (OIDC provider)
+- Authentik (OIDC provider) - Port 9000
 - PostgreSQL (Authentik database)
-- Redis (Session storage)
-- Login Service (This application)
+- Redis (Authentik cache)
+- Redis Sessions (Session storage) - Port 6379
+- Login Service (This application) - Port 8000
 
 ### 4. Register Client Apps
 
@@ -371,21 +380,45 @@ curl -X POST http://localhost:8000/api/auth/logout
 
 ## Docker Commands
 
+**Development:**
+```bash
+# Start dev environment
+docker-compose -f .devcontainer/docker-compose.dev.yml up -d
+
+# Stop dev environment
+docker-compose -f .devcontainer/docker-compose.dev.yml down
+
+# View logs
+docker-compose -f .devcontainer/docker-compose.dev.yml logs -f app
+
+# Rebuild containers
+docker-compose -f .devcontainer/docker-compose.dev.yml up -d --build
+```
+
+**Production:**
 ```bash
 # Start all services
 docker-compose up -d
 
-# Stop all services
-docker-compose down
-
 # View logs
 docker-compose logs -f sso-login
 
-# Restart login service
-docker-compose restart sso-login
+# Stop all services
+docker-compose down
 
-# Check service status
+# Rebuild
+docker-compose build
+
+# Check status
 docker-compose ps
+```
+
+**VS Code Dev Containers:**
+```
+1. Open project in VS Code
+2. Press F1 → "Dev Containers: Reopen in Container"
+3. Wait for setup to complete (installs dependencies automatically)
+4. Run: npm run dev
 ```
 
 ## Redis Management

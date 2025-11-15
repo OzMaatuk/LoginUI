@@ -19,5 +19,14 @@ RUN npm config set update-notifier false
 # Set working directory
 WORKDIR /workspace
 
+# Create directories and set ownership to node user
+RUN mkdir -p /workspace/node_modules \
+    /workspace/packages/auth-sdk/node_modules \
+    /workspace/packages/auth-sdk/dist && \
+    chown -R node:node /workspace
+
+# Switch to node user for all subsequent operations
+USER node
+
 # Keep container running
 CMD ["sleep", "infinity"]

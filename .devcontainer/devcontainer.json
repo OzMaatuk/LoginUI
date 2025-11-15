@@ -45,7 +45,7 @@
       "onAutoForward": "silent"
     }
   },
-  "postCreateCommand": "npm install",
-  "postStartCommand": "cp .env.example .env.local || true",
-  "remoteUser": "node"
+  "remoteUser": "node",
+  "postCreateCommand": "npm install && npm run build:sdk",
+  "postStartCommand": "cp .env.example .env.local || true"
 }

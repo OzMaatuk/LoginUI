@@ -23,7 +23,7 @@ services:
 
   # Redis for Authentik (required by Authentik for caching and sessions)
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: authentik-redis-dev
     restart: unless-stopped
     healthcheck:
@@ -108,12 +108,15 @@ services:
   # Development container for the app
   app:
     build:
-      context: .
+      context: ..
       dockerfile: .devcontainer/Dockerfile
     container_name: sso-login-dev
+    user: node
     volumes:
-      - .:/workspace:cached
-      - node_modules:/workspace/node_modules
+      - ..:/workspace:cached
+      - node_modules_dev:/workspace/node_modules
+      - auth_sdk_node_modules_dev:/workspace/packages/auth-sdk/node_modules
+      - auth_sdk_dist_dev:/workspace/packages/auth-sdk/dist
     command: sleep infinity
     environment:
       PORT: 8000
@@ -136,7 +139,11 @@ volumes:
     driver: local
   redis_sessions_dev:
     driver: local
-  node_modules:
+  node_modules_dev:
+    driver: local
+  auth_sdk_node_modules_dev:
+    driver: local
+  auth_sdk_dist_dev:
     driver: local
 
 networks:

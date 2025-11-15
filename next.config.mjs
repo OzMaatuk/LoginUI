@@ -3,6 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: "standalone",
+  transpilePackages: ["@company/auth"],
   experimental: {
     optimizePackageImports: ["@tanstack/react-query"],
   },

@@ -1,24 +1,23 @@
 ARG NODE_VERSION=20
 
-# Dependencies stage
-FROM node:${NODE_VERSION}-alpine AS deps
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-# Install latest npm
-RUN npm install -g npm@latest
-
-COPY package*.json ./
-RUN npm ci --only=production
-
 # Builder stage
 FROM node:${NODE_VERSION}-alpine AS builder
 WORKDIR /app
 
+# Install dependencies for native modules
+RUN apk add --no-cache libc6-compat python3 make g++
+
+# Copy package files
 COPY package*.json ./
+COPY packages/auth-sdk/package*.json ./packages/auth-sdk/
+
+# Install all dependencies
 RUN npm ci
 
+# Copy source code
 COPY . .
+
+# Build internal package and app
 RUN npm run build
 
 # Runner stage
@@ -27,18 +26,17 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy built internal package
+COPY --from=builder --chown=node:node /app/packages/auth-sdk/dist ./packages/auth-sdk/dist
+COPY --from=builder --chown=node:node /app/packages/auth-sdk/package.json ./packages/auth-sdk/
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy Next.js standalone build
+COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 
-USER nextjs
+USER node
 
 EXPOSE 8000
-
-ENV PORT=8000
-ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
