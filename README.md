@@ -1,221 +1,494 @@
-# SSO Login with Authentik & OTP
+# Centralized SSO Login Service
 
-A modern Next.js authentication application featuring Authentik SSO integration and flexible OTP delivery through external services.
+A secure, centralized authentication service built with Next.js that acts as a proxy between client applications and Authentik OIDC provider. This service enables single sign-on (SSO) across multiple applications with a unified login experience.
 
 ## Features
 
-- **Authentik SSO**: OpenID Connect (OIDC) authentication
-- **OTP Authentication**: Email/SMS OTP with configurable providers (mock or external service)
-- **Session Management**: Secure JWT-based sessions via NextAuth.js v5
-- **Modern Stack**: React 19, Next.js 15, TypeScript, Tailwind CSS v4
-- **Docker Support**: Full containerized setup with Authentik, PostgreSQL, and Redis
+- 🔐 **Centralized Authentication** - Single login service for multiple client apps
+- 🛡️ **Security First** - CSRF protection, rate limiting, input validation, security headers
+- 🚀 **Easy Integration** - Simple React SDK for client apps
+- 📦 **Session Management** - Redis-based server-side sessions
+- 🔄 **OIDC Support** - Integrates with Authentik (or any OIDC provider)
+- 🎯 **Type Safe** - Full TypeScript support
+- 🧪 **Tested** - Integration tests included
+
+## Architecture
+
+```
+┌─────────────┐
+│ Client App  │ ──1. Redirect to /api/auth/initiate──┐
+└─────────────┘                                       │
+                                                      ↓
+                                          ┌─────────────────────┐
+                                          │  Login Service      │
+                                          │  ┌───────────────┐  │
+                                          │  │ App Registry  │  │ ← 2. Validate
+                                          │  └───────────────┘  │
+                                          │  ┌───────────────┐  │
+                                          │  │ Redis Session │  │ ← 3. Store
+                                          │  └───────────────┘  │
+                                          └──────────┬──────────┘
+                                                     │ 4. Redirect
+                                                     ↓
+                                          ┌─────────────┐
+                                          │ Login Page  │
+                                          └──────┬──────┘
+                                                 │ 5. Authenticate
+                                                 ↓
+                                          ┌─────────────┐
+                                          │  Authentik  │
+                                          └──────┬──────┘
+                                                 │ 6. OIDC Callback
+                                                 ↓
+                                          ┌─────────────────────┐
+                                          │  Login Service      │
+                                          └──────┬──────────────┘
+                                                 │ 7. Redirect
+                                                 ↓
+┌─────────────┐
+│ Client App  │ ← 8. Session Established
+└─────────────┘
+```
 
 ## Quick Start
 
-### Option 1: Docker (Recommended)
-
-The easiest way to get started with Authentik included:
+### 1. Installation
 
 ```bash
-# Generate required secrets
-openssl rand -base64 32  # Use for AUTH_SECRET
-openssl rand -base64 32  # Use for AUTHENTIK_SECRET_KEY
-openssl rand -base64 32  # Use for PG_PASS
-
-# Update .env with generated secrets
-# Start all services (Authentik + PostgreSQL + Redis + App)
-docker-compose up -d
-
-# Access Authentik at http://localhost:9000
-# Access App at http://localhost:8000
-```
-
-See [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md) for detailed Docker instructions.
-
-### Option 2: Local Development
-
-If you have an existing Authentik instance:
-
-**1. Install dependencies:**
-```bash
+# Install dependencies
 npm install
+
+# Build client SDK
+cd packages/auth-sdk
+npm install
+npm run build
+cd ../..
 ```
 
-**2. Configure environment:**
-```bash
-cp .env.example .env.local
-```
+### 2. Environment Setup
 
-Edit `.env.local`:
+Copy `.env.example` to `.env` and configure:
+
 ```env
-# Authentik Configuration
-AUTHENTIK_ISSUER=https://your-authentik.com/application/o/your-app/
+# Required
+REDIS_URL=redis://localhost:6379
+NEXT_PUBLIC_LOGIN_URL=http://localhost:8000
+AUTHENTIK_ISSUER=http://localhost:9000/application/o/sso-login/
 AUTHENTIK_CLIENT_ID=your-client-id
 AUTHENTIK_CLIENT_SECRET=your-client-secret
-
-# NextAuth Configuration
 AUTH_SECRET=generate-with-openssl-rand-base64-32
-NEXTAUTH_URL=http://localhost:8000
+NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
 
-# OTP Configuration
-OTP_PROVIDER=mock  # or "external" for production
+# Optional (for rate limiting)
+UPSTASH_REDIS_URL=your-upstash-url
+UPSTASH_REDIS_TOKEN=your-upstash-token
 ```
 
-**3. Set up Authentik OAuth2 Provider:**
-- Redirect URI: `http://localhost:8000/api/auth/callback/authentik`
-- Scopes: `openid`, `email`, `profile`
-- Client Type: Confidential
-
-**4. Run the application:**
+Generate secrets:
 ```bash
-npm run dev
+openssl rand -base64 32
 ```
 
-Visit http://localhost:8000
+### 3. Start Services
 
-## OTP Integration
-
-The application supports two OTP providers:
-
-### Mock Provider (Development)
-```env
-OTP_PROVIDER=mock
-```
-OTP codes are logged to the console for easy testing:
-```
-[OTP Mock] Sending OTP to user@example.com via email: 123456
+```bash
+docker-compose up -d
 ```
 
-### External Provider (Production)
-```env
-OTP_PROVIDER=external
-OTP_EXTERNAL_SERVICE_URL=https://your-otp-service.com/send
+This starts:
+- Authentik (OIDC provider)
+- PostgreSQL (Authentik database)
+- Redis (Session storage)
+- Login Service (This application)
+
+### 4. Register Client Apps
+
+Edit `src/lib/app-registry.ts`:
+
+```typescript
+const apps: Record<string, AppConfig> = {
+  myapp: {
+    appId: 'myapp',
+    name: 'My Application',
+    allowedRedirectUrls: [
+      'https://myapp.com/auth/callback',
+      'http://localhost:3001/auth/callback',
+    ],
+    allowedOrigins: ['https://myapp.com', 'http://localhost:3001'],
+  },
+};
 ```
 
-Your external service must implement this API contract:
+### 5. Test
 
-**POST /send**
-```json
-{
-  "recipient": "user@example.com",
-  "code": "123456",
-  "channel": "email"
+```bash
+npm test
+```
+
+## Client App Integration
+
+### Step 1: Install SDK
+
+```bash
+npm install @company/auth
+```
+
+### Step 2: Wrap Your Application
+
+```tsx
+import { AuthProvider } from '@company/auth';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <AuthProvider 
+          loginUrl={process.env.NEXT_PUBLIC_LOGIN_URL!}
+          appId="myapp"
+          returnUrl={process.env.NEXT_PUBLIC_URL}
+        >
+          {children}
+        </AuthProvider>
+      </body>
+    </html>
+  );
 }
 ```
 
-**Response (200 OK):**
-```json
-{
-  "status": "sent",
-  "messageId": "optional-id"
+### Step 3: Create Callback Page
+
+```tsx
+// app/auth/callback/page.tsx
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function CallbackPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push('/');
+  }, [router]);
+
+  return <div>Completing login...</div>;
 }
 ```
 
-See [docs/OTP_INTEGRATION.md](docs/OTP_INTEGRATION.md) for complete integration guide with examples.
+### Step 4: Use in Components
 
-## How It Works
+```tsx
+import { useAuth } from '@company/auth';
 
-### Authentik SSO Flow
-1. User clicks "Login with Authentik"
-2. Redirected to Authentik for authentication
-3. After successful login, redirected to `/api/auth/callback/authentik`
-4. NextAuth creates session and redirects to `/profile`
+export default function Dashboard() {
+  const { user, isLoading, login, logout } = useAuth();
 
-### OTP Flow
-1. User enters email/phone on login page
-2. App sends OTP via configured provider
-3. User enters 6-digit code
-4. Upon verification, session created (can be integrated with Authentik MFA)
+  if (isLoading) return <div>Loading...</div>;
+  
+  if (!user) {
+    return <button onClick={login}>Login</button>;
+  }
+
+  return (
+    <div>
+      <h1>Welcome {user.name}</h1>
+      <p>Email: {user.email}</p>
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+}
+```
+
+## API Reference
+
+### Initiate Login
+
+```
+GET /api/auth/initiate?app_id={appId}&return_url={returnUrl}
+```
+
+Starts the login flow for an external application.
+
+**Parameters:**
+- `app_id` - Registered application ID
+- `return_url` - Callback URL (must be whitelisted)
+
+**Response:**
+- `302` - Redirect to login page with session cookie
+- `400` - Invalid parameters
+- `429` - Rate limit exceeded
+
+### Check Session
+
+```
+GET /api/auth/session
+```
+
+Returns the current authenticated user.
+
+**Response:**
+```json
+{
+  "user": {
+    "id": "user-id",
+    "email": "user@example.com",
+    "name": "User Name"
+  }
+}
+```
+
+### Logout
+
+```
+POST /api/auth/logout
+```
+
+Logs out the current user.
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
 
 ## Project Structure
 
 ```
+.
 ├── src/
 │   ├── app/
-│   │   ├── api/
-│   │   │   ├── auth/[...nextauth]/route.ts  # NextAuth handlers
-│   │   │   └── otp/send/route.ts            # OTP API endpoint
-│   │   ├── login/                           # Login page
-│   │   │   └── components/OTPForm.tsx       # OTP form component
-│   │   ├── profile/                         # Protected profile page
-│   │   └── providers.tsx                    # SessionProvider wrapper
-│   ├── auth.ts                              # NextAuth config (Authentik OIDC)
-│   ├── proxy.ts                             # Middleware logic
-│   └── types/next-auth.d.ts                 # TypeScript definitions
-├── middleware.ts                            # Route protection
+│   │   ├── api/auth/              # Auth API endpoints
+│   │   │   ├── initiate/          # Start external app login
+│   │   │   ├── session/           # Session check
+│   │   │   ├── logout/            # Logout
+│   │   │   └── check-login-session/
+│   │   ├── login/                 # Login page
+│   │   └── profile/               # User profile
+│   ├── lib/
+│   │   ├── app-registry.ts        # Client app configuration
+│   │   ├── redis.ts               # Session storage
+│   │   ├── rate-limit.ts          # Rate limiting
+│   │   └── auth-utils.ts          # Auth utilities
+│   ├── types/
+│   │   └── auth.ts                # TypeScript types
+│   └── auth.ts                    # NextAuth configuration
+├── packages/
+│   └── auth-sdk/                  # Client SDK
+│       ├── src/
+│       │   ├── AuthProvider.tsx   # React provider
+│       │   └── index.ts
+│       └── package.json
+├── tests/
+│   └── integration/               # Integration tests
 ├── docs/
-│   ├── DOCKER_SETUP.md                      # Docker deployment guide
-│   └── OTP_INTEGRATION.md                   # OTP service integration
-├── docker-compose.yml                       # Production setup
-└── docker-compose.dev.yml                   # Development setup
+│   ├── MIGRATION_GUIDE.md         # Migration documentation
+│   ├── CLIENT_INTEGRATION.md      # Client integration guide
+│   └── DEPLOYMENT_CHECKLIST.md    # Deployment guide
+└── docker-compose.yml             # Service orchestration
 ```
 
-## Environment Variables
+## Security Features
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `AUTHENTIK_ISSUER` | Yes | - | Authentik OIDC issuer URL |
-| `AUTHENTIK_CLIENT_ID` | Yes | - | OAuth2 client ID |
-| `AUTHENTIK_CLIENT_SECRET` | Yes | - | OAuth2 client secret |
-| `AUTH_SECRET` | Yes | - | NextAuth encryption key |
-| `NEXTAUTH_URL` | Yes | `http://localhost:8000` | Application URL |
-| `OTP_PROVIDER` | No | `mock` | `mock` or `external` |
-| `OTP_EXTERNAL_SERVICE_URL` | No | - | External OTP service endpoint |
-| `PORT` | No | `8000` | Application port |
+- ✅ **CSRF Protection** - State parameter validation
+- ✅ **URL Validation** - Whitelist-based redirect validation
+- ✅ **Origin Validation** - CORS protection
+- ✅ **Rate Limiting** - 10 requests per minute (configurable)
+- ✅ **Security Headers** - X-Frame-Options, CSP, HSTS
+- ✅ **HttpOnly Cookies** - Prevents XSS attacks
+- ✅ **Session Expiration** - 10-minute TTL for login flows
+- ✅ **Input Sanitization** - URL and parameter validation
+- ✅ **HTTPS Enforcement** - Production-ready security
 
-Generate secrets with: `openssl rand -base64 32`
+## Common Patterns
 
-## Security Best Practices
+### Protected Routes (Middleware)
 
-- Use HTTPS in production
-- Keep secrets secure (never commit `.env.local`)
-- Implement rate limiting for OTP endpoints
-- Configure CORS properly for external OTP services
-- Enable Authentik MFA for additional security
-- Review and update dependencies regularly
+```tsx
+// middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const hasSession = request.cookies.has('authjs.session-token');
+  
+  if (!hasSession) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/profile/:path*'],
+};
+```
+
+### API Route Protection
+
+```tsx
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  const loginUrl = process.env.NEXT_PUBLIC_LOGIN_URL!;
+  
+  const response = await fetch(`${loginUrl}/api/auth/session`, {
+    headers: {
+      cookie: request.headers.get('cookie') || '',
+    },
+  });
+
+  if (!response.ok) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { user } = await response.json();
+  
+  return NextResponse.json({ data: 'protected', user });
+}
+```
 
 ## Testing
 
-Run the test suite:
+### Run Integration Tests
+
 ```bash
-npm test              # Run once
-npm run test:watch    # Watch mode
-npm run test:coverage # With coverage
+npm test
+```
+
+### Manual API Testing
+
+```bash
+# Test initiate endpoint
+curl "http://localhost:8000/api/auth/initiate?app_id=app1&return_url=http://localhost:3001/auth/callback"
+
+# Test session endpoint
+curl http://localhost:8000/api/auth/session
+
+# Test logout
+curl -X POST http://localhost:8000/api/auth/logout
+```
+
+## Docker Commands
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f sso-login
+
+# Restart login service
+docker-compose restart sso-login
+
+# Check service status
+docker-compose ps
+```
+
+## Redis Management
+
+```bash
+# Connect to Redis
+redis-cli
+
+# List all sessions
+KEYS session:*
+
+# Get session data
+GET session:SESSION_ID
+
+# Delete specific session
+DEL session:SESSION_ID
+
+# Clear all sessions
+FLUSHDB
+
+# Check memory usage
+INFO memory
 ```
 
 ## Troubleshooting
 
-**Authentik connection fails:**
-- Verify issuer URL format: `https://authentik.com/application/o/slug/`
-- Check redirect URI matches exactly in Authentik provider
-- Ensure scopes include `openid`, `email`, `profile`
+| Issue | Solution |
+|-------|----------|
+| Session not persisting | Check cookie settings, verify HTTPS in production |
+| CORS errors | Add origin to `allowedOrigins` in app registry |
+| Redirect loop | Verify callback page doesn't trigger another login |
+| Redis connection failed | Check `REDIS_URL`, ensure Redis is running |
+| Rate limit errors | Configure Upstash or disable rate limiting |
+| Authentik connection failed | Verify `AUTHENTIK_ISSUER` and credentials |
 
-**OTP not sending:**
-- Check `OTP_PROVIDER` is set correctly
-- Verify external service URL is accessible
-- Review console/logs for error messages
-- Test with mock provider first
+## Deployment
 
-**Session issues:**
-- Clear browser cookies and try again
-- Verify `AUTH_SECRET` is set and matches
-- Check `NEXTAUTH_URL` matches your domain
+### Production Checklist
+
+- [ ] Enable HTTPS
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure production URLs in app registry
+- [ ] Set secure cookie flags
+- [ ] Enable rate limiting with Upstash
+- [ ] Configure monitoring and logging
+- [ ] Set up Redis backups
+- [ ] Rotate secrets regularly
+
+### Environment Variables (Production)
+
+```env
+NODE_ENV=production
+REDIS_URL=redis://production-redis:6379
+NEXT_PUBLIC_LOGIN_URL=https://login.company.com
+AUTHENTIK_ISSUER=https://auth.company.com/application/o/sso-login/
+AUTHENTIK_CLIENT_ID=production-client-id
+AUTHENTIK_CLIENT_SECRET=production-secret
+AUTH_SECRET=production-secret-32-chars
+NEXTAUTH_SECRET=production-secret-32-chars
+UPSTASH_REDIS_URL=https://production.upstash.io
+UPSTASH_REDIS_TOKEN=production-token
+```
+
+See `docs/DEPLOYMENT_CHECKLIST.md` for complete deployment guide.
 
 ## Documentation
 
-- [Docker Setup Guide](docs/DOCKER_SETUP.md) - Complete Docker deployment instructions
-- [OTP Integration Guide](docs/OTP_INTEGRATION.md) - External OTP service integration with examples
+- **[Getting Started](docs/GETTING_STARTED.md)** - Installation and setup guide
+- **[Architecture](docs/ARCHITECTURE.md)** - System design and data flow
+- **[Client Integration](docs/CLIENT_INTEGRATION.md)** - Integrate your apps with the SDK
+- **[OTP Integration](docs/OTP_INTEGRATION.md)** - Configure external OTP service
+- **[SDK Reference](packages/auth-sdk/README.md)** - Client SDK API documentation
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
-- **Auth**: NextAuth.js v5 (beta)
-- **UI**: React 19, Tailwind CSS v4
-- **Forms**: React Hook Form + Zod validation
-- **State**: TanStack Query (React Query)
-- **Testing**: Jest + React Testing Library
-- **Container**: Docker + Docker Compose
+- **Framework:** Next.js 16 (App Router)
+- **Authentication:** NextAuth.js v5 + Authentik OIDC
+- **Session Storage:** Redis (ioredis)
+- **Rate Limiting:** Upstash Redis (optional)
+- **Language:** TypeScript
+- **Testing:** Jest
+- **Containerization:** Docker + Docker Compose
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
 ## License
 
-MIT
+[Your License Here]
+
+## Support
+
+For issues or questions:
+1. Check the [documentation](docs/)
+2. Review [example implementations](examples/)
+3. Check [integration tests](tests/)
+4. Open an issue on GitHub
+
+---
+
+**Built with ❤️ using Next.js and Authentik**

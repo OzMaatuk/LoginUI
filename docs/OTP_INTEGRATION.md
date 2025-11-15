@@ -208,9 +208,9 @@ npm run dev
 ```bash
 # Set in .env.local
 OTP_PROVIDER=external
-OTP_EXTERNAL_SERVICE_URL=http://localhost:3001/send
+OTP_EXTERNAL_SERVICE_URL=http://localhost:3008/send
 
-# Start your OTP service on port 3001
+# Start your OTP service on port 3008
 # Start the app
 npm run dev
 
