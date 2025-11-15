@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Card,
   CardContent,
@@ -10,27 +11,24 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-// import { LoginForm } from "./components/LoginForm";
 import { OTPForm } from "./components/OTPForm";
-import { isAuthenticated } from "@/lib/auth";
-import { getApiUrl, config } from "@/lib/config";
+import { config } from "@/lib/config";
+import { signIn } from "next-auth/react";
 
 export const dynamic = "force-dynamic";
 
-// type LoginMode = "password" | "otp";
-
 export default function LoginPage() {
   const router = useRouter();
-  // const [mode, setMode] = useState<LoginMode>("password");
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (status === "authenticated") {
       router.push("/profile");
     }
-  }, [router]);
+  }, [status, router]);
 
-  const handleSSOLogin = () => {
-    window.location.href = getApiUrl("/auth/sso");
+  const handleAuthentikLogin = async () => {
+    await signIn("authentik", { callbackUrl: "/profile" });
   };
 
   return (
@@ -59,15 +57,12 @@ export default function LoginPage() {
           </div>
 
           <div className="grid gap-2">
-            {/* <Button
-              variant="outline"
-              onClick={() => setMode(mode === "password" ? "otp" : "password")}
+            <Button 
+              variant="outline" 
+              onClick={handleAuthentikLogin}
+              disabled={status === "loading"}
             >
-              {mode === "password" ? "Login with OTP" : "Login with Password"}
-            </Button> */}
-
-            <Button variant="outline" onClick={handleSSOLogin}>
-              Login with SSO
+              {status === "loading" ? "Loading..." : "Login with Authentik"}
             </Button>
           </div>
         </CardContent>

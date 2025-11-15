@@ -37,13 +37,26 @@ export function OTPForm() {
     resolver: zodResolver(otpSchema),
   });
 
-  const onEmailSubmit = (data: EmailFormData) => {
-    requestOTP(data, {
-      onSuccess: () => {
-        setEmail(data.email);
-        setStep("otp");
-      },
-    });
+  const onEmailSubmit = async (data: EmailFormData) => {
+    try {
+      const response = await fetch("/api/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: data.email,
+          channel: "email",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send OTP");
+      }
+
+      setEmail(data.email);
+      setStep("otp");
+    } catch (error) {
+      console.error("OTP send error:", error);
+    }
   };
 
   const onOTPSubmit = (data: OTPFormData) => {

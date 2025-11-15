@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   Card,
   CardContent,
@@ -10,32 +11,25 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { useProfile } from "@/hooks/useProfile";
-import { clearToken } from "@/lib/auth";
-import { useAuthStore } from "@/store/useAuthStore";
-import { isAuthenticated } from "@/lib/auth";
 import { LogOut, User, Mail, Shield } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { data: user, isLoading, error } = useProfile();
-  const { logout: storeLogout } = useAuthStore();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (status === "unauthenticated") {
       router.push("/login");
     }
-  }, [router]);
+  }, [status, router]);
 
-  const handleLogout = () => {
-    clearToken();
-    storeLogout();
-    router.push("/login");
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" });
   };
 
-  if (isLoading) {
+  if (status === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -43,23 +37,11 @@ export default function ProfilePage() {
     );
   }
 
-  if (error || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Error</CardTitle>
-            <CardDescription>Failed to load profile</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => router.push("/login")} className="w-full">
-              Back to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!session?.user) {
+    return null;
   }
+
+  const user = session.user;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 p-4">
@@ -91,25 +73,17 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {user.role && (
+            {user.id && (
               <div className="flex items-start gap-3 rounded-lg border p-3">
-                <Shield className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                <User className="mt-0.5 h-5 w-5 text-muted-foreground" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Role</p>
-                  <p className="text-sm text-muted-foreground">{user.role}</p>
+                  <p className="text-sm font-medium">User ID</p>
+                  <p className="text-sm text-muted-foreground font-mono">
+                    {user.id}
+                  </p>
                 </div>
               </div>
             )}
-
-            <div className="flex items-start gap-3 rounded-lg border p-3">
-              <User className="mt-0.5 h-5 w-5 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">User ID</p>
-                <p className="text-sm text-muted-foreground font-mono">
-                  {user.id}
-                </p>
-              </div>
-            </div>
           </div>
 
           <Button onClick={handleLogout} variant="outline" className="w-full">
