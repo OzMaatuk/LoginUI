@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database for Authentik
   postgresql:
@@ -50,6 +48,10 @@ services:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-change-this-to-a-random-secret}
       AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
       AUTHENTIK_LOG_LEVEL: debug
+      # Bootstrap configuration for first-time setup
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-akadmin}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-dev-bootstrap-token-change-in-prod}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-admin@localhost}
     volumes:
       - authentik_media_dev:/media
       - authentik_templates_dev:/templates
@@ -77,6 +79,10 @@ services:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-change-this-to-a-random-secret}
       AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
       AUTHENTIK_LOG_LEVEL: debug
+      # Bootstrap configuration for first-time setup
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-akadmin}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-dev-bootstrap-token-change-in-prod}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-admin@localhost}
     volumes:
       - authentik_media_dev:/media
       - authentik_templates_dev:/templates
@@ -121,12 +127,19 @@ services:
     environment:
       PORT: 8000
       REDIS_URL: redis://redis-sessions:6379
+      # Authentik Setup Configuration
+      AUTHENTIK_URL: http://authentik-server:9000
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-akadmin}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-dev-bootstrap-token-change-in-prod}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-admin@localhost}
+      CALLBACK_URL: http://localhost:8000/api/auth/callback/authentik
     networks:
       - authentik-dev
     ports:
       - "8000:8000"
     depends_on:
       - redis-sessions
+      - authentik-server
 
 volumes:
   postgres_data_dev:

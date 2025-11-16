@@ -47,5 +47,12 @@
   },
   "remoteUser": "node",
   "postCreateCommand": "npm install && npm run build:sdk",
-  "postStartCommand": "cp .env.example .env.local || true"
+  "postStartCommand": "cp .env.example .env.local || true",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false,
+      "installOhMyZsh": false,
+      "upgradePackages": false
+    }
+  }
 }

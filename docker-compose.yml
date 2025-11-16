@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database for Authentik
   postgresql:
@@ -67,6 +65,10 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:-authentik_db_password}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-change-this-to-a-random-secret}
       AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
+      # Bootstrap configuration for first-time setup
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-akadmin}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-admin@localhost}
     volumes:
       - authentik_media:/media
       - authentik_templates:/templates
@@ -93,6 +95,10 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:-authentik_db_password}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:-change-this-to-a-random-secret}
       AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
+      # Bootstrap configuration for first-time setup
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-akadmin}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-admin@localhost}
     volumes:
       - authentik_media:/media
       - authentik_templates:/templates
@@ -111,7 +117,16 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
+      # Authentik Setup
+      AUTO_SETUP_AUTHENTIK: ${AUTO_SETUP_AUTHENTIK:-true}
+      AUTHENTIK_URL: http://authentik-server:9000
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-akadmin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-akadmin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@localhost}
+      CALLBACK_URL: http://localhost:8000/api/auth/callback/authentik
       # Authentik
       AUTHENTIK_ISSUER: http://authentik-server:9000/application/o/sso-login/
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID}

@@ -62,53 +62,34 @@ npm install
 npm run build:sdk
 ```
 
-### 2. Environment Setup
+### 2. Setup Authentik
 
-Copy `.env.example` to `.env` and configure:
-
-```env
-# Required
-REDIS_URL=redis://localhost:6379
-NEXT_PUBLIC_LOGIN_URL=http://localhost:8000
-AUTHENTIK_ISSUER=http://localhost:9000/application/o/sso-login/
-AUTHENTIK_CLIENT_ID=your-client-id
-AUTHENTIK_CLIENT_SECRET=your-client-secret
-AUTH_SECRET=generate-with-openssl-rand-base64-32
-NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
-
-# Optional (for rate limiting)
-UPSTASH_REDIS_URL=your-upstash-url
-UPSTASH_REDIS_TOKEN=your-upstash-token
+**Start Docker services:**
+```bash
+docker compose up -d
 ```
 
-Generate secrets:
+**Run setup script from inside the container:**
 ```bash
-openssl rand -base64 32
+# Enter the application container
+docker exec -it sso-login-dev bash
+
+# Run the setup script
+./scripts/setup-authentik.sh
 ```
 
-### 3. Start Services
+The script will:
+1. Wait for Authentik to be ready
+2. Configure OAuth2 provider via API
+3. Display credentials to add to `.env.local`
 
-**Development:**
+Copy the output credentials to `.env.local`.
+
+### 3. Start Dev Server
+
 ```bash
-# Start all services (Authentik, PostgreSQL, Redis, App)
-docker-compose -f .devcontainer/docker-compose.dev.yml up -d
-
-# Run dev server
 npm run dev
 ```
-
-**Production:**
-```bash
-# Start all services
-docker-compose up -d
-```
-
-This starts:
-- Authentik (OIDC provider) - Port 9000
-- PostgreSQL (Authentik database)
-- Redis (Authentik cache)
-- Redis Sessions (Session storage) - Port 6379
-- Login Service (This application) - Port 8000
 
 ### 4. Register Client Apps
 
@@ -417,8 +398,9 @@ docker-compose ps
 ```
 1. Open project in VS Code
 2. Press F1 → "Dev Containers: Reopen in Container"
-3. Wait for setup to complete (installs dependencies automatically)
-4. Run: npm run dev
+3. Wait for setup to complete
+4. Run: bash scripts/setup-authentik.sh
+5. Run: npm run dev
 ```
 
 ## Redis Management
@@ -486,7 +468,6 @@ See `docs/DEPLOYMENT_CHECKLIST.md` for complete deployment guide.
 
 ## Documentation
 
-- **[Getting Started](docs/GETTING_STARTED.md)** - Installation and setup guide
 - **[Architecture](docs/ARCHITECTURE.md)** - System design and data flow
 - **[Client Integration](docs/CLIENT_INTEGRATION.md)** - Integrate your apps with the SDK
 - **[OTP Integration](docs/OTP_INTEGRATION.md)** - Configure external OTP service

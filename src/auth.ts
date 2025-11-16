@@ -8,15 +8,40 @@ export const authConfig: NextAuthConfig = {
       id: "authentik",
       name: "Authentik",
       type: "oidc",
+      // Server-side issuer (Docker network)
       issuer: process.env.AUTHENTIK_ISSUER,
       clientId: process.env.AUTHENTIK_CLIENT_ID,
       clientSecret: process.env.AUTHENTIK_CLIENT_SECRET,
+      // Override endpoints: use Docker network for server calls, localhost for browser redirects
       authorization: {
+        url: process.env.AUTHENTIK_ISSUER!.replace("authentik-server-dev", "localhost") + "../authorize/",
         params: {
           scope: "openid email profile",
         },
       },
-    },
+      token: {
+        url: process.env.AUTHENTIK_ISSUER + "../token/",
+        params: {
+          grant_type: "authorization_code",
+        },
+      },
+      userinfo: process.env.AUTHENTIK_ISSUER + "../userinfo/",
+      checks: ["pkce", "state"],
+      client: {
+        token_endpoint_auth_method: "client_secret_post",
+      },
+      idToken: true,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          email: profile.email,
+          name: profile.name || profile.preferred_username || profile.email,
+        };
+      },
+      style: {
+        brandColor: "#fd4b2d",
+      },
+    } as any,
     Credentials({
       id: "credentials",
       name: "OTP",
