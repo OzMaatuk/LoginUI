@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { generateOTP, storeOTP, validateRecipient } from "@/lib/otp";
 
 interface OTPRequest {
   recipient: string;
@@ -17,8 +18,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate recipient format
+    if (!validateRecipient(recipient, channel)) {
+      return NextResponse.json(
+        { error: `Invalid ${channel} format` },
+        { status: 400 }
+      );
+    }
+
     // Generate 6-digit OTP
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = generateOTP();
 
     const otpProvider = process.env.OTP_PROVIDER || "mock";
 
@@ -58,8 +67,9 @@ export async function POST(request: NextRequest) {
 
       const data = await response.json();
       
-      // Store OTP in session/database for verification
-      // For now, we'll return success
+      // Store OTP in Redis for verification
+      await storeOTP(recipient, code, channel);
+      
       return NextResponse.json({
         message: "OTP sent successfully",
         status: "sent",
@@ -68,6 +78,9 @@ export async function POST(request: NextRequest) {
     } else {
       // Mock provider - log to console
       console.log(`[OTP Mock] Sending OTP to ${recipient} via ${channel}: ${code}`);
+      
+      // Store OTP in Redis for verification
+      await storeOTP(recipient, code, channel);
       
       return NextResponse.json({
         message: "OTP sent successfully (mock)",

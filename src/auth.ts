@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -16,6 +17,26 @@ export const authConfig: NextAuthConfig = {
         },
       },
     },
+    Credentials({
+      id: "credentials",
+      name: "OTP",
+      credentials: {
+        email: { label: "Email", type: "email" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email) {
+          return null;
+        }
+
+        // OTP verification is handled in /api/otp/verify
+        // This provider just creates the session after verification
+        return {
+          id: credentials.email as string,
+          email: credentials.email as string,
+          name: credentials.email as string,
+        };
+      },
+    }),
   ],
   pages: {
     signIn: "/login",
