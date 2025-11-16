@@ -86,15 +86,17 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleAuthentikLogin}
-              disabled={status === "loading"}
-            >
-              {status === "loading" ? "Loading..." : "Login with Authentik"}
-            </Button>
-          </div>
+          {process.env.NEXT_PUBLIC_AUTHENTIK_ENABLED !== 'false' && (
+            <div className="grid gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleAuthentikLogin}
+                disabled={status === "loading"}
+              >
+                {status === "loading" ? "Loading..." : "Login with Authentik"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

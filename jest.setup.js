@@ -1,5 +1,18 @@
 import "@testing-library/jest-dom";
 
+// Mock ioredis to prevent real connections during tests
+jest.mock("ioredis", () => {
+  const mockRedis = jest.fn().mockImplementation(() => ({
+    setex: jest.fn().mockResolvedValue('OK'),
+    get: jest.fn().mockResolvedValue(null),
+    del: jest.fn().mockResolvedValue(1),
+    quit: jest.fn().mockResolvedValue('OK'),
+    disconnect: jest.fn(),
+    on: jest.fn(),
+  }));
+  return mockRedis;
+});
+
 // Mock Next.js router
 jest.mock("next/navigation", () => ({
   useRouter: jest.fn(() => ({
@@ -24,21 +37,16 @@ jest.mock("next-auth/react", () => ({
 
 // Only set up browser-specific mocks in jsdom environment
 if (typeof window !== "undefined") {
-  // Mock window.location properly for jsdom
-  delete window.location;
-  window.location = {
-    href: "http://localhost",
-    origin: "http://localhost",
-    protocol: "http:",
-    host: "localhost",
-    hostname: "localhost",
-    port: "",
-    pathname: "/",
-    search: "",
-    hash: "",
-    assign: jest.fn(),
-    reload: jest.fn(),
-    replace: jest.fn(),
+  // Suppress jsdom navigation warnings
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('Not implemented: navigation')
+    ) {
+      return;
+    }
+    originalConsoleError(...args);
   };
 
   // Mock localStorage
@@ -56,3 +64,26 @@ if (typeof window !== "undefined") {
 
 // Mock atob for token decoding
 global.atob = (str) => Buffer.from(str, "base64").toString("binary");
+
+// Mock fetch for jsdom environment
+if (typeof window !== "undefined" && !global.fetch) {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: async () => ({}),
+      text: async () => "",
+      status: 200,
+    })
+  );
+}
+
+// Clean up after each test to prevent leaks
+afterEach(() => {
+  jest.clearAllTimers();
+});
+
+// Force cleanup after all tests
+afterAll(async () => {
+  jest.clearAllTimers();
+  jest.restoreAllMocks();
+});

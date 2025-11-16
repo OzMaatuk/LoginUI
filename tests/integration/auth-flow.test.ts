@@ -2,13 +2,17 @@
  * @jest-environment node
  */
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
-import { GET as initiateGET } from '@/app/api/auth/initiate/route';
-import { GET as sessionGET } from '@/app/api/auth/session/route';
-import { POST as logoutPOST } from '@/app/api/auth/logout/route';
 import { NextRequest } from 'next/server';
 
-// Mock dependencies
+// Mock dependencies BEFORE imports
 jest.mock('@/lib/redis', () => ({
+  __esModule: true,
+  default: {
+    setex: jest.fn().mockResolvedValue('OK'),
+    get: jest.fn().mockResolvedValue(null),
+    del: jest.fn().mockResolvedValue(1),
+    quit: jest.fn().mockResolvedValue('OK'),
+  },
   setSession: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
   getSession: jest.fn<() => Promise<null>>().mockResolvedValue(null),
 }));
@@ -17,14 +21,38 @@ jest.mock('@/lib/rate-limit', () => ({
   ratelimit: null,
 }));
 
+jest.mock('next-auth', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('@auth/core', () => ({
+  __esModule: true,
+  Auth: jest.fn(),
+}));
+
 jest.mock('@/auth', () => ({
+  __esModule: true,
   auth: jest.fn<() => Promise<null>>().mockResolvedValue(null),
   signOut: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  handlers: {
+    GET: jest.fn(),
+    POST: jest.fn(),
+  },
 }));
+
+// Import routes AFTER mocks
+import { GET as initiateGET } from '@/app/api/auth/initiate/route';
+import { GET as sessionGET } from '@/app/api/auth/check-login-session/route';
+import { POST as logoutPOST } from '@/app/api/auth/logout/route';
 
 describe('External App Login Flow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
   });
 
   describe('Auth Initiate Endpoint', () => {
@@ -76,14 +104,14 @@ describe('External App Login Flow', () => {
   });
 
   describe('Session Endpoint', () => {
-    test('should return 401 for unauthenticated session check', async () => {
-      const request = new NextRequest('http://localhost:8000/api/auth/session');
+    test('should return 404 when no session cookie exists', async () => {
+      const request = new NextRequest('http://localhost:8000/api/auth/check-login-session');
 
       const response = await sessionGET(request);
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(404);
       
       const data = await response.json();
-      expect(data.user).toBeNull();
+      expect(data.session).toBeNull();
     });
   });
 

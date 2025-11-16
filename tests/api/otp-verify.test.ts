@@ -42,14 +42,16 @@ describe("OTP Verification Flow", () => {
       const recipient = "test@example.com";
       const code = "123456";
 
-      (redis.get as jest.Mock).mockResolvedValueOnce(
-        JSON.stringify({
-          code,
-          recipient,
-          channel: "email",
-          createdAt: Date.now(),
-        })
-      );
+      (redis.get as jest.Mock)
+        .mockResolvedValueOnce(null) // No attempts yet
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            code,
+            recipient,
+            channel: "email",
+            createdAt: Date.now(),
+          })
+        );
 
       const result = await verifyOTPLib(recipient, code);
 
